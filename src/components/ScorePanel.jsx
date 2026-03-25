@@ -2,11 +2,11 @@ import React from 'react';
 
 const ScorePanel = ({ score }) => {
     return (
-        <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800 flex flex-col items-center justify-center shadow-lg min-h-[140px] border-yellow-500/30">
-            <div className={`text-6xl font-bold mb-1 ${score === 0 ? 'text-green-400' : 'text-yellow-400'}`}>
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl p-6 border border-yellow-500/30 flex flex-col items-center justify-center shadow-sm min-h-[140px] transition-colors duration-300">
+            <div className={`text-6xl font-black mb-1 tracking-tighter ${score === 0 ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
                 {score}
             </div>
-            <h2 className="text-gray-400 text-sm font-medium">To 100</h2>
+            <h2 className="text-slate-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider">To 100</h2>
         </div>
     );
 };

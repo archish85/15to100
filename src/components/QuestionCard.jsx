@@ -4,7 +4,7 @@ import { Check, X } from 'lucide-react';
 
 const QuestionCard = ({ question }) => {
     const { revealQuestion, answerQuestion } = useGameStore();
-    const { question_id, difficulty, revealed, answered, correct, options, question: questionText, answer } = question;
+    const { question_id, difficulty, revealed, answered, correct, options, question: questionText, answer, image_url } = question;
     const [selectedOption, setSelectedOption] = React.useState(null);
 
     const getColor = () => {
@@ -65,6 +65,12 @@ const QuestionCard = ({ question }) => {
                 </div>
                 <div className="text-gray-400 text-sm">Select an answer</div>
             </div>
+
+            {image_url && (
+                <div className="mb-6 overflow-hidden rounded-xl border border-slate-700/50 shadow-lg shrink-0">
+                    <img src={image_url} alt="Question context" className="w-full max-h-64 object-cover" />
+                </div>
+            )}
 
             <h3 className="text-2xl font-bold text-white mb-8 leading-tight">{questionText}</h3>
 

@@ -60,3 +60,7 @@ CREATE POLICY "Allow public select" ON public.users FOR SELECT USING (true);
 
 CREATE POLICY "Allow public insert" ON public.responses FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public select" ON public.responses FOR SELECT USING (true);
+
+-- Add image_url to questions table if not exists (Idempotent check not strictly needed for schema.sql as it defines the base state, but good for migrations)
+-- Ideally this is a migration, but for this project structure we append to schema.
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS image_url TEXT;

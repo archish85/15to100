@@ -7,7 +7,9 @@ import DailyStreak from './DailyStreak';
 import { useGameStore } from '../store/gameStore';
 
 const GameBoard = () => {
-    const { coins, score, currentCategory } = useGameStore();
+    const { coins, score, currentCategory, history } = useGameStore();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const bestCat = history?.[dateStr]?.bestCategory || "No data yet";
 
     return (
         <div className="grid grid-cols-12 gap-4 h-full flex-grow max-w-[1600px] mx-auto w-full p-4 lg:p-0">
@@ -45,9 +47,11 @@ const GameBoard = () => {
                 <DailyStreak />
 
                 {/* Best Category */}
-                <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800 flex flex-col items-center justify-center flex-1 lg:flex-grow">
-                    <h3 className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-2">Best Category</h3>
-                    <div className="text-center text-gray-500 mt-4">No data yet</div>
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl p-6 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center flex-1 lg:flex-grow shadow-sm">
+                    <h3 className="text-slate-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Best Category</h3>
+                    <div className="text-center text-brand-600 dark:text-brand-400 font-bold text-xl mt-4">
+                        {bestCat}
+                    </div>
                 </div>
             </div>
 

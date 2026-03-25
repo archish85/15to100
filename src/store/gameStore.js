@@ -410,9 +410,23 @@ export const useGameStore = create((set, get) => ({
 
         const categoriesUsed = Object.values(state.categoryState).filter(c => c.status === 'opened' || c.status === 'closed').length;
 
+        let bestCategoryName = null;
+        let maxCorrect = -1;
+        
+        Object.entries(state.categoryState).forEach(([catId, cat]) => {
+            if (cat.status === 'opened' || cat.status === 'closed') {
+                const correctCount = cat.questions.filter(q => q.answered && q.correct).length;
+                if (correctCount > maxCorrect && correctCount > 0) {
+                    maxCorrect = correctCount;
+                    bestCategoryName = catId.charAt(0).toUpperCase() + catId.slice(1);
+                }
+            }
+        });
+
         newHistory[dateStr] = {
             status: isWin ? 'win' : 'loss',
-            categories: categoriesUsed
+            categories: categoriesUsed,
+            bestCategory: bestCategoryName
         };
 
         let newStreak = state.streak;

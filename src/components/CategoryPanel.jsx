@@ -140,9 +140,9 @@ const CategoryPanel = () => {
 
 
     return (
-        <div className="bg-slate-900/50 rounded-xl p-4 lg:p-6 flex-grow border border-slate-800 flex flex-col items-center lg:justify-center relative min-h-full w-full">
-            <h2 className="hidden lg:block text-lg font-semibold mb-12 text-brand-300 text-center">
-                Choose: <span className="text-white uppercase">{currentCategory}</span>
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl p-4 lg:p-6 flex-grow border border-slate-200 dark:border-slate-800 flex flex-col items-center lg:justify-center relative min-h-full w-full shadow-sm transition-colors duration-300">
+            <h2 className="hidden lg:block text-lg font-bold mb-12 text-slate-500 dark:text-brand-300 text-center tracking-tight">
+                Choose: <span className="text-slate-800 dark:text-white uppercase px-2">{currentCategory}</span>
             </h2>
 
             {/* --- MOBILE LAYOUT (< 1024px) --- */}

@@ -3,6 +3,8 @@ import { useGameStore } from '../store/gameStore';
 import QuestionCard from './QuestionCard';
 import { CATEGORIES } from '../constants/categories';
 import GameEndScreen from './GameEndScreen';
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion';
 
 const QuestionArea = () => {
     const { currentCategory, categoryState, forfeitCategory, hoveredCategory, selectCategory, gameStatus } = useGameStore();
@@ -138,13 +140,35 @@ const QuestionArea = () => {
                 )}
 
                 {activeQuestion ? (
-                    <QuestionCard question={activeQuestion} />
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeQuestion.question_id}
+                            initial={{ opacity: 0, x: 50 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -50 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                            className="w-full flex justify-center"
+                        >
+                            <QuestionCard question={activeQuestion} />
+                        </motion.div>
+                    </AnimatePresence>
                 ) : (
                     <div className="flex flex-col items-center w-full">
                         <div className="flex flex-wrap justify-center gap-6 mb-8">
-                            {questions.map((q) => (
-                                <QuestionCard key={q.question_id} question={q} />
-                            ))}
+                            <AnimatePresence mode="popLayout">
+                                {questions.map((q) => (
+                                    <motion.div 
+                                        key={q.question_id}
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.5, filter: "blur(5px)" }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                    >
+                                        <QuestionCard question={q} />
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
                         </div>
 
                         {!allAnswered && gameStatus === 'playing' && (

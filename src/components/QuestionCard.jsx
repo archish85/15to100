@@ -81,15 +81,33 @@ const QuestionCard = ({ question }) => {
         );
     }
 
+    const flashResult = selectedOption !== null ? (selectedOption === answer ? 'correct' : 'wrong') : null;
+
     return (
         <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 20 }} 
             animate={{ opacity: 1, scale: 1, y: 0 }} 
             exit={{ opacity: 0, scale: 0.95, y: -20 }} 
             transition={{ duration: 0.4, type: 'spring', bounce: 0.4 }} 
-            className="w-full max-w-2xl bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl relative z-10"
+            className={`w-full max-w-2xl p-8 rounded-2xl border transition-all duration-300 relative z-10 
+                ${flashResult === 'correct' ? 'bg-slate-800/80 border-green-400 shadow-[0_0_24px_rgba(74,222,128,0.4)]' : 
+                  flashResult === 'wrong' ? 'bg-slate-800/80 border-red-400 shadow-[0_0_24px_rgba(248,113,113,0.4)]' : 
+                  'bg-slate-800 border-slate-700 shadow-2xl'}`}
         >
-            <div className="flex justify-between items-center mb-6">
+            {flashResult && (
+                <div className={`
+                    absolute top-0 left-0 right-0 rounded-t-2xl py-2 text-center
+                    font-bold text-sm tracking-wide z-20 
+                    animate-in fade-in duration-150
+                    ${flashResult === 'correct' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}
+                `}>
+                    {flashResult === 'correct'
+                        ? `✓ Correct! +${difficulty === 'Purple' ? 15 : difficulty === 'Orange' ? 9 : 3} pts`
+                        : '✗ Wrong — no points'}
+                </div>
+            )}
+
+            <div className={`flex justify-between items-center mb-6 ${flashResult ? 'mt-4' : ''}`}>
                 <div className={`px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getColor()} ${difficulty === 'Yellow' ? 'text-black' : 'text-white'}`}>
                     {difficulty} Question
                 </div>
@@ -111,13 +129,13 @@ const QuestionCard = ({ question }) => {
                     if (selectedOption !== null) {
                         if (idx === answer) {
                             // Correct answer (always green if selection made)
-                            btnClass += "!bg-green-600 !border-green-400 ";
+                            btnClass += "!bg-green-600/30 !border-green-400 !text-green-300 ";
                         } else if (idx === selectedOption) {
                             // Wrong selection (red)
-                            btnClass += "!bg-red-600 !border-red-400 ";
+                            btnClass += "!bg-red-600/30 !border-red-400 !text-red-300 ";
                         } else {
                             // Other options (dimmed)
-                            btnClass += "!bg-slate-800 border-slate-700 opacity-50 ";
+                            btnClass += "!bg-slate-800 border-slate-700 opacity-40 ";
                         }
                     } else {
                         // Default state
@@ -133,12 +151,15 @@ const QuestionCard = ({ question }) => {
                             disabled={selectedOption !== null}
                             className={btnClass}
                         >
-                            <span className={`inline-block w-8 font-bold transition-colors ${selectedOption !== null ? 'text-white' : 'text-gray-400 group-hover:text-brand-400'}`}>
+                            <span className={`inline-block w-8 font-bold transition-colors ${selectedOption !== null ? '' : 'text-gray-400 group-hover:text-brand-400'}`}>
                                 {String.fromCharCode(65 + idx)}.
                             </span>
-                            <span className={`transition-colors ${selectedOption !== null ? '!text-white' : '!text-white group-hover:text-brand-100'}`}>
+                            <span className={`transition-colors ${selectedOption !== null ? '' : '!text-white group-hover:text-brand-100'}`}>
                                 {opt}
                             </span>
+                            {selectedOption !== null && idx === answer && (
+                                <span className="ml-2 text-green-400 text-xs font-bold uppercase tracking-wider">✓ Correct</span>
+                            )}
                         </motion.button>
                     );
                 })}

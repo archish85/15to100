@@ -76,19 +76,40 @@ const QuestionArea = () => {
                     </div>
                 </div>
 
-                <div className="flex gap-4 items-center">
-                    <div className="flex flex-col items-center">
-                        <div className="w-3 h-3 rounded-full bg-purple-500 mb-2" />
-                        <span className="text-sm text-gray-400 font-medium">{mix.purple} Purple</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                        <div className="w-3 h-3 rounded-full bg-orange-500 mb-2" />
-                        <span className="text-sm text-gray-400 font-medium">{mix.orange} Orange</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                        <div className="w-3 h-3 rounded-full bg-yellow-500 mb-2" />
-                        <span className="text-sm text-gray-400 font-medium">{mix.yellow} Yellow</span>
-                    </div>
+                <div className="flex gap-6 mt-4 text-sm w-full justify-center">
+                    {mix.purple > 0 && (
+                        <div className="flex flex-col items-center gap-1">
+                            <div className="flex gap-1">
+                                {Array.from({ length: mix.purple }).map((_, i) => (
+                                    <div key={i} className="w-4 h-4 rounded-full bg-purple-500" />
+                                ))}
+                            </div>
+                            <span className="text-purple-300 text-xs font-semibold">Hard ({mix.purple})</span>
+                            <span className="text-slate-500 text-xs">15 pts each</span>
+                        </div>
+                    )}
+                    {mix.orange > 0 && (
+                        <div className="flex flex-col items-center gap-1">
+                            <div className="flex gap-1">
+                                {Array.from({ length: mix.orange }).map((_, i) => (
+                                    <div key={i} className="w-4 h-4 rounded-full bg-orange-500" />
+                                ))}
+                            </div>
+                            <span className="text-orange-300 text-xs font-semibold">Medium ({mix.orange})</span>
+                            <span className="text-slate-500 text-xs">9 pts each</span>
+                        </div>
+                    )}
+                    {mix.yellow > 0 && (
+                        <div className="flex flex-col items-center gap-1">
+                            <div className="flex gap-1">
+                                {Array.from({ length: mix.yellow }).map((_, i) => (
+                                    <div key={i} className="w-4 h-4 rounded-full bg-yellow-400" />
+                                ))}
+                            </div>
+                            <span className="text-yellow-300 text-xs font-semibold">Easy ({mix.yellow})</span>
+                            <span className="text-slate-500 text-xs">3 pts each</span>
+                        </div>
+                    )}
                 </div>
             </div>
         );
@@ -184,9 +205,9 @@ const QuestionArea = () => {
                                 </div>
                                 <button
                                     onClick={forfeitCategory}
-                                    className="px-3 py-1.5 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-medium transition-colors border border-red-500/20"
+                                    className="mt-4 px-4 py-1.5 text-slate-500 hover:text-red-400 text-sm font-medium border border-slate-700 hover:border-red-400/50 rounded-lg transition-colors duration-200"
                                 >
-                                    Forfeit
+                                    Forfeit category
                                 </button>
                             </div>
                         )}

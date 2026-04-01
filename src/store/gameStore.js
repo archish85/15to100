@@ -82,6 +82,10 @@ export const useGameStore = create((set, get) => ({
             const todayStr = new Date().toISOString().split('T')[0];
             const todayEntry = history[todayStr];
 
+            // Streak bonus: +1 coin per 3 streak days (max +3 bonus)
+            const streakBonus = Math.min(3, Math.floor(streak / 3));
+            const startingCoins = 15 + streakBonus;
+
             let initialGameStatus = 'playing';
             if (todayEntry) {
                 // Map history status 'win'/'loss' to gameStatus 'won'/'lost'
@@ -117,7 +121,8 @@ export const useGameStore = create((set, get) => ({
                 loading: false,
                 history,
                 streak,
-                gameStatus: initialGameStatus
+                gameStatus: initialGameStatus,
+                coins: startingCoins
             })
 
         } catch (err) {
@@ -188,10 +193,12 @@ export const useGameStore = create((set, get) => ({
                     .select('*')
                     .ilike('category', categoryId === 'wildcard' ? 'Wildcard' : categoryId)
                     .eq('difficulty', diff)
-                    .limit(count)
 
                 if (error) throw error
-                return data || []
+                
+                // Shuffle manually to ensure random questions on each fetch
+                const shuffled = (data || []).sort(() => 0.5 - Math.random())
+                return shuffled.slice(0, count)
             }
 
             // Note: This logic is imperfect because we need random questions and to track 'asked_status'.
@@ -458,8 +465,9 @@ export const useGameStore = create((set, get) => ({
 
     resetGame: () => {
         const { history, streak } = get().loadHistory();
+        const streakBonus = Math.min(3, Math.floor(streak / 3));
         set({
-            coins: 15,
+            coins: 15 + streakBonus,
             score: -100,
             currentCategory: null,
             categoryState: {},

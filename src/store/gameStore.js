@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import { CATEGORIES } from '../constants/categories'
 
 // Constants for scoring
 const POINTS = {
@@ -20,18 +21,116 @@ const MIX_OPTIONS = [
     { cost: 4, purple: 1, orange: 3, yellow: 2, maxPoints: 48 },
 ]
 
+const shuffle = (items) => [...items].sort(() => 0.5 - Math.random())
+
+const normalizeCategory = (value) => String(value || '').trim().toLowerCase()
+
 export const useGameStore = create((set, get) => ({
     coins: 15,
     score: -100,
     currentCategory: null,
     hoveredCategory: null, // New state for hover interaction
     categoryState: {}, // { categoryId: { unlocked: boolean, questions: [], mix: {} } }
+    activeCategories: [], // Dynamic 5 randomly picked categories for the current game
+    answeredQuestionIds: [], // Track answered questions to prevent repetition
     streak: 0,
     history: {}, // { 'YYYY-MM-DD': { status: 'win'|'loss', categories: 0 } }
     bestCategory: null,
     loading: false,
     error: null,
     gameStatus: 'playing', // 'playing' | 'won' | 'lost'
+
+    pickPlayableCategories: async (answeredQuestionIds) => {
+        const { data, error } = await supabase
+            .from('questions')
+            .select('category, question_id')
+            .eq('expiry_status', false)
+
+        if (error || !data) {
+            return shuffle(CATEGORIES).slice(0, 5)
+        }
+
+        const answeredSet = new Set(answeredQuestionIds || [])
+        const availableCategoryIds = new Set(
+            data
+                .filter((row) => !answeredSet.has(row.question_id))
+                .map((row) => normalizeCategory(row.category))
+                .filter(Boolean)
+        )
+
+        const playable = CATEGORIES.filter((cat) => availableCategoryIds.has(cat.id))
+
+        if (playable.length >= 5) {
+            return shuffle(playable).slice(0, 5)
+        }
+
+        if (playable.length > 0) {
+            const fillers = shuffle(CATEGORIES.filter((cat) => !availableCategoryIds.has(cat.id))).slice(0, 5 - playable.length)
+            return [...shuffle(playable), ...fillers]
+        }
+
+        return shuffle(CATEGORIES).slice(0, 5)
+    },
+
+    buildCategoryState: async (selectedCategories, answeredQuestionIds) => {
+        const { data } = await supabase
+            .from('questions')
+            .select('category, difficulty, question_id')
+            .eq('expiry_status', false);
+            
+        const answeredSet = new Set(answeredQuestionIds || []);
+        const validQs = (data || []).filter(q => !answeredSet.has(q.question_id));
+        
+        const counts = {};
+        validQs.forEach(q => {
+            const key = `${normalizeCategory(q.category)}-${String(q.difficulty || '').toLowerCase()}`;
+            counts[key] = (counts[key] || 0) + 1;
+        });
+
+        const initialCategoryState = {};
+            
+        selectedCategories.forEach(cat => {
+            const randomMix = MIX_OPTIONS[Math.floor(Math.random() * MIX_OPTIONS.length)]
+            const catId = cat.id.toLowerCase();
+            
+            const safePurple = Math.min(randomMix.purple, counts[`${catId}-purple`] || 0);
+            const safeOrange = Math.min(randomMix.orange, counts[`${catId}-orange`] || 0);
+            const safeYellow = Math.min(randomMix.yellow, counts[`${catId}-yellow`] || 0);
+            
+            initialCategoryState[cat.id] = {
+                status: 'unopened',
+                unlocked: false, 
+                mix: {
+                    ...randomMix,
+                    purple: safePurple,
+                    orange: safeOrange,
+                    yellow: safeYellow,
+                    maxPoints: (safePurple * 15) + (safeOrange * 9) + (safeYellow * 3)
+                },
+                questions: [] 
+            }
+        })
+
+        // Wildcard setup
+        const wSafePurple = Math.min(2, counts[`wildcard-purple`] || 0);
+        const wSafeOrange = Math.min(1, counts[`wildcard-orange`] || 0);
+        const wSafeYellow = Math.min(0, counts[`wildcard-yellow`] || 0); // Requested 0
+        
+        initialCategoryState['wildcard'] = {
+            status: 'unopened',
+            unlocked: false,
+            mix: { 
+                 cost: 0, 
+                 purple: wSafePurple, 
+                 orange: wSafeOrange, 
+                 yellow: wSafeYellow, 
+                 maxPoints: (wSafePurple * 15) + (wSafeOrange * 9) + (wSafeYellow * 3)
+            },
+            questions: []
+        }
+        
+        return initialCategoryState;
+    },
 
     // Helper to load history
     loadHistory: () => {
@@ -71,6 +170,16 @@ export const useGameStore = create((set, get) => ({
         return { history: {}, streak: 0 };
     },
 
+    loadAnsweredQuestions: () => {
+        try {
+            const stored = localStorage.getItem('15to100_answered');
+            if (stored) return JSON.parse(stored);
+        } catch (e) {
+            console.error("Failed to load answered questions", e);
+        }
+        return [];
+    },
+
     setHoveredCategory: (category) => set({ hoveredCategory: category }),
 
     // Initialize Game (Load questions, etc.)
@@ -93,31 +202,17 @@ export const useGameStore = create((set, get) => ({
                 if (todayEntry.status === 'loss') initialGameStatus = 'lost';
             }
 
-            // In a real app, we'd fetch questions here or per category.
-            // For now, we'll just set up the category mixes.
-            const initialCategoryState = {}
-            const categories = ['history', 'technology', 'sports', 'culture', 'connect']
+            const answeredQuestionIds = get().loadAnsweredQuestions();
 
-            categories.forEach(cat => {
-                const randomMix = MIX_OPTIONS[Math.floor(Math.random() * MIX_OPTIONS.length)]
-                initialCategoryState[cat] = {
-                    status: 'unopened', // State Machine: unopened -> opened -> closed
-                    unlocked: false, // Keeping for backward compat if needed, but status replaces it
-                    mix: randomMix,
-                    questions: [] // Will be populated on unlock
-                }
-            })
+            // Randomly select 5 categories for this specific game
+            const selectedCategories = await get().pickPlayableCategories(answeredQuestionIds)
 
-            // Wildcard setup
-            initialCategoryState['wildcard'] = {
-                status: 'unopened',
-                unlocked: false,
-                mix: { cost: 0, purple: 2, orange: 1, yellow: 0, maxPoints: 60 }, // Example mix
-                questions: []
-            }
+            const initialCategoryState = await get().buildCategoryState(selectedCategories, answeredQuestionIds);
 
             set({
                 categoryState: initialCategoryState,
+                activeCategories: selectedCategories,
+                answeredQuestionIds,
                 loading: false,
                 history,
                 streak,
@@ -188,17 +283,29 @@ export const useGameStore = create((set, get) => ({
             // Helper to fetch N questions of difficulty D
             const fetchByDiff = async (diff, count) => {
                 if (count === 0) return []
+
                 const { data, error } = await supabase
                     .from('questions')
                     .select('*')
                     .ilike('category', categoryId === 'wildcard' ? 'Wildcard' : categoryId)
                     .eq('difficulty', diff)
+                    .eq('expiry_status', false)
+                    .order('date_added', { ascending: false })
 
                 if (error) throw error
                 
+                // Filter out questions the user has already answered
+                const answeredSet = new Set(get().answeredQuestionIds || []);
+                let available = (data || []).filter(q => !answeredSet.has(q.question_id));
+                
+                // Fallback: If filtering leaves too few questions, include answered ones to avoid breaking
+                if (available.length < count) {
+                     available = data || [];
+                }
+                
                 // Shuffle manually to ensure random questions on each fetch
-                const shuffled = (data || []).sort(() => 0.5 - Math.random())
-                return shuffled.slice(0, count)
+                const shuffled = available.sort(() => 0.5 - Math.random());
+                return shuffled.slice(0, count);
             }
 
             // Note: This logic is imperfect because we need random questions and to track 'asked_status'.
@@ -208,10 +315,42 @@ export const useGameStore = create((set, get) => ({
             const orangeQs = await fetchByDiff('Orange', mix.orange)
             const yellowQs = await fetchByDiff('Yellow', mix.yellow)
 
-            console.log(`[DEBUG] Fetching for ${categoryId}:`, mix);
-            console.log(`[DEBUG] Got: Purple=${purpleQs.length}, Orange=${orangeQs.length}, Yellow=${yellowQs.length}`);
+            let allQs = [...purpleQs, ...orangeQs, ...yellowQs];
+            const neededCount = (mix.purple + mix.orange + mix.yellow) - allQs.length;
 
-            const allQs = [...purpleQs, ...orangeQs, ...yellowQs].map(q => ({
+            if (neededCount > 0) {
+                const existingIds = allQs.map(q => q.question_id);
+
+                // 1. Try to fill deficit with ANY other questions from the SAME category
+                const { data: fallbackData } = await supabase
+                    .from('questions')
+                    .select('*')
+                    .ilike('category', categoryId === 'wildcard' ? 'Wildcard' : categoryId)
+                    .eq('expiry_status', false)
+                    .order('date_added', { ascending: false });
+
+                let safeFallback = (fallbackData || []).filter(q => !existingIds.includes(q.question_id));
+                safeFallback = safeFallback.sort(() => 0.5 - Math.random());
+                const addedQs = safeFallback.slice(0, neededCount);
+                allQs = [...allQs, ...addedQs];
+
+                // 2. If STILL needed, pad with true Wildcard questions!
+                const stillNeeded = neededCount - addedQs.length;
+                if (stillNeeded > 0 && categoryId !== 'wildcard') {
+                     const { data: panicData } = await supabase
+                        .from('questions')
+                        .select('*')
+                        .ilike('category', 'Wildcard')
+                        .eq('expiry_status', false)
+                        .order('date_added', { ascending: false });
+                        
+                     let panicFallback = (panicData || []).filter(q => !existingIds.includes(q.question_id));
+                     panicFallback = panicFallback.sort(() => 0.5 - Math.random());
+                     allQs = [...allQs, ...panicFallback.slice(0, stillNeeded)];
+                }
+            }
+
+            allQs = allQs.map(q => ({
                 ...q,
                 revealed: false,
                 answered: false,
@@ -259,8 +398,16 @@ export const useGameStore = create((set, get) => ({
         // Calculate potential new score
         const newScore = state.score + points;
 
+        // Persist the question ID to local storage ONLY if answered correctly
+        let nextAnsweredIds = state.answeredQuestionIds || [];
+        if (isCorrect && !nextAnsweredIds.includes(questionId)) {
+            nextAnsweredIds = [...nextAnsweredIds, questionId];
+            localStorage.setItem('15to100_answered', JSON.stringify(nextAnsweredIds));
+        }
+
         set(state => ({
             score: newScore,
+            answeredQuestionIds: nextAnsweredIds,
             categoryState: {
                 ...state.categoryState,
                 [categoryId]: {
@@ -463,16 +610,24 @@ export const useGameStore = create((set, get) => ({
         localStorage.setItem('15to100_history', JSON.stringify(newHistory));
     },
 
-    resetGame: () => {
+    resetGame: async () => {
         const { history, streak } = get().loadHistory();
+        const answeredQuestionIds = get().loadAnsweredQuestions();
         const streakBonus = Math.min(3, Math.floor(streak / 3));
+
+        const selectedCategories = await get().pickPlayableCategories(answeredQuestionIds)
+        
+        const initialCategoryState = await get().buildCategoryState(selectedCategories, answeredQuestionIds);
+
         set({
             coins: 15 + streakBonus,
             score: -100,
             currentCategory: null,
-            categoryState: {},
+            categoryState: initialCategoryState,
+            activeCategories: selectedCategories,
             history,
             streak,
+            answeredQuestionIds,
             gameStatus: 'playing'
         });
     },

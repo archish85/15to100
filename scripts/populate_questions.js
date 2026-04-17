@@ -21,7 +21,7 @@ async function generateQuestions() {
     
     const prompt = `
 Generate 15 trivia questions for a game.
-Categories must be chosen from: History, Technology, Sports, Culture, Connect.
+Categories must be chosen from: History, Technology, Sports, Culture, Connect, Science, Geography, Movies, Music, Literature, Nature, Mythology, Food, Space, Gaming, Wildcard.
 Difficulties: Purple (hard, 15 points), Orange (medium, 9 points), Yellow (easy, 3 points). Ensure an even mix.
 Each question should be returned in a strict JSON array format matching this schema:
 [

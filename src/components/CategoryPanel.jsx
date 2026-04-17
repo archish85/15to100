@@ -40,11 +40,14 @@ const HexagonTile = ({ onClick, onMouseEnter, onMouseLeave, active, disabled, ic
 );
 
 const CategoryPanel = () => {
-    const { currentCategory, selectCategory, setHoveredCategory, categoryState } = useGameStore();
+    const { currentCategory, selectCategory, setHoveredCategory, categoryState, activeCategories } = useGameStore();
+
+    // activeCategories is already an array of Category objects
+    const resolvedCats = activeCategories || [];
 
     // MATH SETTINGS (Orbit - Desktop)
     const radius = 75;
-    const totalItems = CATEGORIES.length;
+    const totalItems = resolvedCats.length || 5;
     const angleStep = 360 / totalItems;
 
     const isCategoryClosed = (id) => {
@@ -94,6 +97,7 @@ const CategoryPanel = () => {
 
     // Helper for pure mobile render
     const renderMobileTile = (cat) => {
+        if (!cat) return null;
         const isDisabled = (currentCategory && currentCategory !== cat.id) || isCategoryClosed(cat.id);
         const dynamicCost = categoryState[cat.id]?.mix?.cost ?? cat.cost;
 
@@ -156,12 +160,12 @@ const CategoryPanel = () => {
                       Let's do: Cat 0, Cat 1, Cat 2, Wildcard, Cat 3, Cat 4.
                   */}
                 <div className="grid grid-cols-1 gap-3 place-items-center py-4">
-                    {renderMobileTile(CATEGORIES[0])}
-                    {renderMobileTile(CATEGORIES[1])}
-                    {renderMobileTile(CATEGORIES[2])}
+                    {renderMobileTile(resolvedCats[0])}
+                    {renderMobileTile(resolvedCats[1])}
+                    {renderMobileTile(resolvedCats[2])}
                     {renderWildcardMobile()}
-                    {renderMobileTile(CATEGORIES[3])}
-                    {renderMobileTile(CATEGORIES[4])}
+                    {renderMobileTile(resolvedCats[3])}
+                    {renderMobileTile(resolvedCats[4])}
                 </div>
             </div>
 
@@ -196,7 +200,7 @@ const CategoryPanel = () => {
                 </div>
 
                 {/* ORBIT: Dynamic Categories */}
-                {CATEGORIES.map((cat, index) => {
+                {resolvedCats.map((cat, index) => {
                     const angle = (index * angleStep);
                     const isDisabled = (currentCategory && currentCategory !== cat.id) || isCategoryClosed(cat.id);
                     const dynamicCost = categoryState[cat.id]?.mix?.cost ?? cat.cost;
